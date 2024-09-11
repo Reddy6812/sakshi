@@ -1,0 +1,78 @@
+task:
+  preprocess:
+    sdf_flag: 1 #if 1 it will look for sdf files to work with
+    dataset_sdf_input: "/blue/yanjun.li/share/" #if sdf input it will be here and converted pdbqt will be in correct place
+    dataset_pdbqt: "/blue/yanjun.li/vi.gade1/seabra-li/data/pdbqt1" 
+    #dataset_pdbqt: "/blue/yanjun.li/vi.gade1/seabra-li/data/usefortrain/"
+    #/blue/yanjun.li/share  for 460k data of enamine in sdf
+  receptor:
+    protein_file: "/blue/yanjun.li/vi.gade1/seabra-li/data/1TBF_prepared.pdbqt" #target location
+  docking: #this will get input from preprocess dataset_pdbqt
+    vina:
+      control:
+        exhaustiveness: 16
+        n_poses: 1
+        parallel_processes: 560
+        vina_cpus: 80
+        energy_range: 5.0
+        #n_random_files: 400000
+      grid:
+        center_x: 23.266
+        center_y: 56.891
+        center_z: 86.524
+        size_x: 18.0
+        size_y: 18.0
+        size_z: 18.0
+      docking_output_vina: "/blue/yanjun.li/vi.gade1/seabra-li/docking/vina/outenamine"
+    gnina:
+      control:
+        exhaustiveness: 16  # Similar to Vina, controls the thoroughness of search
+        n_poses: 1  # Number of poses per ligand
+        parallel_processes: 50  # Adjust based on GPU capacity
+        gpu: true  # Enable GPU support
+        gpu_id: 0  # GPU ID (if multi-GPU setup, otherwise use 0 for single GPU)
+        energy_range: 5.0  # Energy range similar to Vina
+      grid:
+        center_x: 23.266
+        center_y: 56.891
+        center_z: 86.524
+        size_x: 18.0
+        size_y: 18.0
+        size_z: 18.0
+      docking_output_gnina: "/blue/yanjun.li/vi.gade1/seabra-li/docking/gnina/outenaminegnina"
+      
+  ml:
+    random_forest:
+      trainingcsv: "/blue/yanjun.li/vi.gade1/seabra-li/data/fingerprints_docking_scores1.csv"
+      inference: ""
+    chembert:
+      training: ""
+      inference: ""
+  top_results:
+    final_results:
+# we used output_dir for chembert and output_file for random_forest
+operations:
+  configure_file:
+    config_file_path: "/blue/yanjun.li/vi.gade1/seabra-li/configure.yaml"
+  parse_pdbqt: # for smiles
+    input_dir: "/blue/yanjun.li/vi.gade1/seabra-li/data/pdbqt1" #this is main
+    output_dir: "/blue/yanjun.li/vi.gade1/seabra-li/data/smiles/" #if you want smiles to be in seperate files, uncomment this and in operations.py code
+    #output_file: "/blue/yanjun.li/vi.gade1/seabra-li/data/smiles1/onefile.smi"
+    #output_file: "/blue/yanjun.li/vi.gade1/seabra-li/data/smiles1/onefile.smi"
+    output_format: "smi"
+  extract_scores: #extraxt scores from pdbqt files(after docking)
+    input_dir: "/blue/yanjun.li/vi.gade1/seabra-li/docking/vina/out1" #add program name and foldername
+    output_csv: "/blue/yanjun.li/vi.gade1/seabra-li/data/fingerprints_docking_scores.csv" #same file for ml-inputs
+    #output_csv1: "/blue/yanjun.li/vi.gade/.conda/envs/ulvs/ulvs/fingerprints_docking_score.csv"
+  add_fingerprints: #add fingerprints to csv and this function will be called in ml
+    #csv_file: "/blue/yanjun.li/vi.gade1/seabra-li/data/deletethis.csv"
+    fingerprints_dir: "/blue/yanjun.li/vi.gade1/seabra-li/data/fingerprints1" #****also remember to change this name in code in operations
+  #get_results:
+   # input_dir: "/blue/yanjun.li/vi.gade/.conda/envs/ulvs/ulvs/chembl31/pdbqt"
+   # output_csv: "/blue/yanjun.li/vi.gade/.conda/envs/ulvs/ulvs/get_res_prepd.csv"
+  
+inference:
+  dataset: ""
+  random_forest: "/blue/yanjun.li/vi.gade1/seabra-li/ml/inference/random_forest.py"
+  chembert_model: "/blue/yanjun.li/vi.gade1/seabra-li/ml/inference/chembert/chembert.py"
+rescoring:
